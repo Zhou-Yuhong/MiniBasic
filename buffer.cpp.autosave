@@ -99,7 +99,7 @@ int Buffer::inputstring(string &input) {
         totlestring.push_back(singlestring);
     }
     if(totlestring.empty()){
-        err="Error: Line"+to_string(numget)+" is empty";
+        err="Error: Line "+to_string(numget)+" is empty";
         throw myException(err);
     }
     node* p = new node(numget, totlestring);

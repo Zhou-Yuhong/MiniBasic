@@ -34,7 +34,6 @@ public:
     void Run();//run的外裹函数
     void load();//从文件读
     void help();
-
     string interaction="";
     string valinput="";
     int run_line=-1;
@@ -43,7 +42,8 @@ public:
     void PrintIftree(Expression* p,bool flag=true);
     void Ins_handle(string input);
     void clear();
-
+    node * ins_node=nullptr;   //用于处理INPUT，LET，PRINT指令的node*
+    bool node_input_flag=false;  //上述node是否处于input等待输入的状态
 private:
     Ui::MainWindow *ui;
     QDialog* dialog;

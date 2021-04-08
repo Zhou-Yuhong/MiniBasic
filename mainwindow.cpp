@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <sstream>
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -90,9 +91,26 @@ void MainWindow::show_runcode(string str)
 
 void MainWindow::inputString(string str)
 {
+    //如果是input的后续输入
+    if(node_input_flag){
+     ((INPUT_statement*)ins_node->state)->get_value(str);
+     ((INPUT_statement*)ins_node->state)->execute(run_state);
+        node_input_flag=false;
+        return;
+    }
+    //针对下面的case7、8、9进行提前处理
+    string copy=str;
+    buffer.addspace(copy);
+    stringstream handle(copy);
+    vector<string> inf_vec;
+    string singlestring;
+    while(handle>>singlestring){
+        inf_vec.push_back(singlestring);
+    }
+
     int ins_type=this->buffer.inputstring(str);
     switch(ins_type){
-    //0为输入代码，1为Run,2为LOAD，3为LIST，4为CLEAR，5为HELP，6为QUIT
+    //0为输入代码，1为Run,2为LOAD，3为LIST，4为CLEAR，5为HELP，6为QUIT,7为INPUT，8为LET，9为PRINT
       case 0:
         return;
       case 1:
@@ -111,7 +129,28 @@ void MainWindow::inputString(string str)
         return;
       case 6:
         this->window()->close();
-
+      case 7:
+         delete ins_node;
+        ins_node=new node(0,inf_vec);
+        ins_node->set_status();
+        interaction= ((INPUT_statement*)ins_node->state)->getname()+"?";
+        show_runcode(interaction);
+        node_input_flag=true;
+        return;
+      case 8:
+        delete ins_node;
+        ins_node=new node(0,inf_vec);
+        ins_node->set_status();
+        ins_node->state->execute(run_state);
+        return;
+      case 9:
+        delete ins_node;
+        ins_node=new node(0,inf_vec);
+        ins_node->set_status();
+        ins_node->state->execute(run_state);
+        interaction=to_string(((PRINT_statement*)ins_node->state)->value);
+        show_runcode(interaction);
+        return;
 
     }
 }
