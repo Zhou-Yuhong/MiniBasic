@@ -33,6 +33,9 @@ struct node {
     Expression* readE(int prec = 0);
     int precedence(string token); //判断字符（运算符）优先级
     void set_status();
+    void transform();
+    void LL(Expression**t);
+
 };
 class Buffer
 {

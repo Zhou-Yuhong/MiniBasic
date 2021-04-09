@@ -1,5 +1,6 @@
 #include "statement.h"
 #include "sstream"
+#include "error.h"
 Statement::Statement(){
 
 }
@@ -65,7 +66,10 @@ PRINT_statement::~PRINT_statement()
 }
 
 void PRINT_statement::execute(EvalState &state)
-{
+{   if(exp==nullptr) {
+    string err="Error: Wrong Expression";
+    throw myException(err);
+    }
     this->value=exp->eval(state);
 }
 

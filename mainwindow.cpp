@@ -104,6 +104,7 @@ void MainWindow::inputString(string str)
     stringstream handle(copy);
     vector<string> inf_vec;
     string singlestring;
+    string err;
     while(handle>>singlestring){
         inf_vec.push_back(singlestring);
     }
@@ -141,12 +142,20 @@ void MainWindow::inputString(string str)
         delete ins_node;
         ins_node=new node(0,inf_vec);
         ins_node->set_status();
+        if(ins_node->expr==nullptr){
+            err="Error: Wrong Expression";
+            throw myException(err);
+        }
         ins_node->state->execute(run_state);
         return;
       case 9:
         delete ins_node;
         ins_node=new node(0,inf_vec);
         ins_node->set_status();
+        if(ins_node->expr==nullptr){
+            err="Error: Wrong Expression";
+            throw myException(err);
+        }
         ins_node->state->execute(run_state);
         interaction=to_string(((PRINT_statement*)ins_node->state)->value);
         show_runcode(interaction);
@@ -208,6 +217,10 @@ void MainWindow::run()
                continue;
            }
            if (state_type == "LET") {
+               if(p->expr==nullptr){
+                   err="Error: Wrong Expression";
+                   throw myException(err);
+               }
                p->state->execute(run_state);
                //语法树
                ui->Statement_Display->insertPlainText(QString::number(p->line_number));
@@ -234,6 +247,10 @@ void MainWindow::run()
                }
            }
            if (state_type == "PRINT") {
+               if(p->expr==nullptr){
+                   err="Error: Wrong Expression";
+                   throw myException(err);
+               }
                p->state->execute(run_state);
                interaction=to_string(((PRINT_statement*)p->state)->value);
                show_runcode(interaction);

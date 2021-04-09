@@ -1,5 +1,6 @@
 #include "exp.h"
 #include <iostream>
+#include <cmath>
 Expression::Expression() {
 
 }
@@ -124,6 +125,9 @@ int CompoundExp::eval(EvalState& state) {
     if (op == "THEN") {
         if (left !=0) return right;
         else return 0;
+    }
+    if(op=="**"){
+        return pow(left,right);
     }
     else{
         //非法运算符

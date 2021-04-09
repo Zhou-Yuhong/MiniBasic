@@ -55,9 +55,11 @@ public:
     Expression* getlhs();
     Expression* getrhs();
     void setchild(Expression* lhs,Expression* rhs);
+    //为了方便，放到public上
+    Expression* lhs, * rhs;
 private:
     string op;
-    Expression* lhs, * rhs;
+
 };
 
 #endif // EXP_H

@@ -41,11 +41,29 @@ void Buffer::addspace(string &input) {
    static set<char> myset(special_char, special_char + 9);
     for (int i = 0; i < input.length(); i++) {
         if (myset.find(input[i]) != myset.end()) {
+            if(input[i]!='*'){
             input.insert(i, " ");
             i += 2;
             input.insert(i, " ");
+            continue;
+            }
+            else{
+                if(i!=input.length()-1&&input[i+1]=='*'){
+                    input.insert(i," ");
+                    i+=3;
+                    input.insert(i," ");
+                    continue;
+                }
+                else{
+                    input.insert(i, " ");
+                    i += 2;
+                    input.insert(i, " ");
+                    continue;
+                }
+            }
         }
     }
+    return;
 }
 int Buffer::inputstring(string &input) {
     string err;
@@ -99,7 +117,7 @@ int Buffer::inputstring(string &input) {
         totlestring.push_back(singlestring);
     }
     if(totlestring.empty()){
-        err="Error: Line"+to_string(numget)+" is empty";
+        err="Error: Line "+to_string(numget)+" is empty";
         throw myException(err);
     }
     node* p = new node(numget, totlestring);
@@ -198,7 +216,7 @@ TokenType node::getTokenType(string token)
     char ch = token[0];
     if (ch == '"' || (ch == '\'' && token.length() > 1)) return STRING;
     if (isdigit(ch)) return NUMBER;
-    if (token=="+"||token=="-"||token=="*"||token=="/"||token=="<"||token==">"||token=="THEN"||token=="=") return OPERATOR;
+    if (token=="+"||token=="-"||token=="*"||token=="/"||token=="<"||token==">"||token=="THEN"||token=="="||token=="**") return OPERATOR;
     if(ch=='('||ch==')')
     return BRACKET;
     return WORDS;
@@ -248,6 +266,7 @@ int node::precedence(string token)
     if (token==">"||token=="<") return 2;
     if(token == "+" || token == "-") return 3;
     if (token == "*" || token == "/") return 4;
+    if(token=="**") return 5;
     return 0;
 
 }
@@ -388,6 +407,11 @@ void node::set_status()
         iden.push(expget);
     }
     this->expr = iden.top();
+    this->transform();
+    if(expr==nullptr){
+        err="Error: Wrong Expression";
+        throw myException(err);
+    }
     //exp指针初始化完成
 
     //初始化state指针
@@ -427,6 +451,28 @@ void node::set_status()
         throw myException(err);
     }
     //
+}
+
+void node::transform()
+{
+    Expression **p=&(this->expr);
+    Expression **q=nullptr;
+    while((*p)!=nullptr&&(*p)->isop()){
+         q=&(((CompoundExp*)*p)->lhs);
+        if((((CompoundExp*)*p)->getop()=="**")&&((*q)->isop())&&(((CompoundExp*)*q)->getop()=="**")){
+         LL(p);
+
+          }
+        p=q;
+    }
+}
+
+void node::LL(Expression **t)
+{    Expression *t1=((CompoundExp*)*t)->lhs;
+     ((CompoundExp*)*t)->lhs=((CompoundExp*)t1)->rhs;
+     ((CompoundExp*)t1)->rhs=*t;
+     *t=t1;
+
 }
 
 
