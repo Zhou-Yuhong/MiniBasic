@@ -116,10 +116,10 @@ int Buffer::inputstring(string &input) {
     while (ss >> singlestring) {
         totlestring.push_back(singlestring);
     }
-    if(totlestring.empty()){
-        err="Error: Line "+to_string(numget)+" is empty";
-        throw myException(err);
-    }
+//    if(totlestring.empty()){
+//        err="Error: Line "+to_string(numget)+" is empty";
+//        throw myException(err);
+//    }
     node* p = new node(numget, totlestring);
     addnode(p);
     //  source_code.insert(map<int,string>::value_type(numget,totlestring));
@@ -441,6 +441,10 @@ void node::set_status()
         return;
     }
     if (state_type == "INPUT") {
+        if(this->expr->getType()!=IDENTIFIER){
+            err="Error: INPUT should follow an variable";
+            throw myException(err);
+        }
         string name = ((IdentifierExp*)this->expr)->getname();
         state = new INPUT_statement(name);
         return;

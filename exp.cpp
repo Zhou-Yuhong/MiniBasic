@@ -127,6 +127,12 @@ int CompoundExp::eval(EvalState& state) {
         else return 0;
     }
     if(op=="**"){
+        int num=pow(left,right);
+        if(num==-2147483648) {
+            err="Error: Numeric overflow";
+            throw myException(err);
+        }
+        else
         return pow(left,right);
     }
     else{

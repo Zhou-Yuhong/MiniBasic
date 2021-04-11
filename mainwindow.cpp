@@ -188,6 +188,10 @@ void MainWindow::run()
         p=buffer.gotoline(run_line);
     }
        while (p != nullptr) {
+           if(p->content.empty()){
+               p=p->next;
+               continue;
+           }
            //更新正在跑的行
            run_line=p->line_number;
            //错误处理
@@ -196,7 +200,7 @@ void MainWindow::run()
                err="Error: Unknown state "+state_type;
                throw myException(err);
            }
-           if (p->expr == nullptr)
+           if (p->expr == nullptr&&state_type!="END")
                p->set_status();          
 //           ui->Statement_Display->insertPlainText(QString::fromStdString(sget));
 //           ui->Statement_Display->append("");
@@ -231,12 +235,17 @@ void MainWindow::run()
                continue;
            }
            if (state_type == "IF") {
+               int linenum = ((IF_statement*)p->state)->get_line(run_state);
+               if(linenum!=0&&buffer.gotoline(linenum)==nullptr){
+                   err="Syntax error: Line number "+std::to_string(linenum)+" does not exist";
+                   throw myException(err);
+               }
                //语法树
                ui->Statement_Display->insertPlainText(QString::number(p->line_number));
                ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
                PrintIftree(p->expr);
                //语法树结束
-               int linenum = ((IF_statement*)p->state)->get_line(run_state);
+
                if (linenum == 0) {
                    p = p->next;
                    continue;
@@ -283,6 +292,10 @@ void MainWindow::run()
            if (state_type == "INPUT") {
                if(valinput==""){               //未得到输入，退出该函数
                    if(!flag) return;
+                   if(p->expr->getType()!=IDENTIFIER){
+                       err="Error: Input should be followed by a variable";
+                       throw myException(err);
+                   }
                    interaction= ((INPUT_statement*)p->state)->getname()+"?";
                    show_runcode(interaction);
                    flag=false;
@@ -314,6 +327,7 @@ void MainWindow::Run()
         ui->Result_Display->insertPlainText(QString::fromStdString(err));
         ui->Statement_Display->append("");
         if_throw=true;
+        return;
         }
 
     }

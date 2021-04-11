@@ -12,6 +12,7 @@ public:
     virtual string gettoken()=0;
     virtual ExpressionType getType() = 0;
     virtual bool isop()=0;
+
 };
 
 class ConstantExp : public Expression {
