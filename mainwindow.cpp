@@ -275,6 +275,7 @@ void MainWindow::run()
            if (state_type == "GOTO") {
 
                int linenum = ((GOTO_statement*)p->state)->get_line(run_state);
+               node* q=p;
                p = buffer.gotoline(linenum);
                //错误处理
                if(p==nullptr){
@@ -282,9 +283,9 @@ void MainWindow::run()
                    throw myException(err);
                }
                //语法树
-               ui->Statement_Display->insertPlainText(QString::number(p->line_number));
+               ui->Statement_Display->insertPlainText(QString::number(q->line_number));
                ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
-               printtree(p->expr);
+               printtree(q->expr);
                //语法树结束
                //
                continue;

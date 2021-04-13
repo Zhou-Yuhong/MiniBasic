@@ -357,6 +357,7 @@ void node::set_status()
 
                 Expression* exp = oper.top();
                 oper.pop();
+
                 //错误处理
                 if(iden.empty()){
                     err="Error:Wrong Math Expression";
@@ -380,8 +381,10 @@ void node::set_status()
                      err="Expression error missing '('";
                     throw myException(err);
                 }
+                tmp= ((CompoundExp*)oper.top())->getop();
                 //
             }
+
             oper.pop();
             continue;
         }
@@ -497,13 +500,13 @@ void node::handle_negative()
                err="Error:Error in mathematical expression";
                throw myException(err);
            }
-           if(!isnum(content[i+1])){
-             err="Error:Error in mathematical expression" ;
-             throw myException(err);
-           }
-            int num=stoi(content[i+1]);
-            num=-num;
-            content[i+1]=to_string(num);
+           //if(!isnum(content[i+1])){
+             //err="Error:Error in mathematical expression" ;
+             //throw myException(err);
+           //}
+           //int num=stoi(content[i+1]);
+           //num=-num;
+            //content[i+1]=to_string(num);
         }
         if(i>1){
             if(content[i]=="-"&&(content[i-1]=="("||content[i-1]=="=")){
@@ -512,13 +515,22 @@ void node::handle_negative()
                     err="Error:Error in mathematical expression";
                     throw myException(err);
                 }
-                if(!isnum(content[i+1])){
-                  err="Error:Error in mathematical expression" ;
-                  throw myException(err);
+                //if(!isnum(content[i+1])){
+                  //err="Error:Error in mathematical expression" ;
+                  //throw myException(err);
+                //}
+//                int num=stoi(content[i+1]);
+//                num=-num;
+//                content[i+1]=to_string(num);
+            }
+            if(content[i]=="-"){
+                if(i+1>=content.size()){
+                    err="Error:Error in mathematical expression";
+                    throw myException(err);
                 }
-                int num=stoi(content[i+1]);
-                num=-num;
-                content[i+1]=to_string(num);
+                if(content[i+1]=="("){
+                    mark.push(i);
+                }
             }
         }
     }
@@ -526,7 +538,7 @@ void node::handle_negative()
         int num=mark.top();
         mark.pop();
         //vec.erase(vec.begin()+2);
-        content.erase(content.begin()+num);
+        content.insert(content.begin()+num,"0");
     }
 }
 
