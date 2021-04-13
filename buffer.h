@@ -35,7 +35,8 @@ struct node {
     void set_status();
     void transform();
     void LL(Expression**t);
-
+    void handle_negative();
+    bool isnum(string str);
 };
 class Buffer
 {

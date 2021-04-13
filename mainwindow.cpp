@@ -455,6 +455,7 @@ void MainWindow::clear()
     ui->lineEdit->clear();
     buffer.clear();
     run_state.clear();
+    node_input_flag=false;
     if_run=false;
     if_throw=false;
     interaction="";

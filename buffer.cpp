@@ -1,7 +1,7 @@
 #include "buffer.h"
 #include <sstream>
 #include<iostream>
-
+#include <stack>
 Buffer::Buffer()
 {
 
@@ -122,6 +122,8 @@ int Buffer::inputstring(string &input) {
 //    }
     node* p = new node(numget, totlestring);
     addnode(p);
+    //提前处理负号
+
     //  source_code.insert(map<int,string>::value_type(numget,totlestring));
     return 0;//如果是代码，返回0
 }
@@ -215,7 +217,7 @@ TokenType node::getTokenType(string token)
 {
     char ch = token[0];
     if (ch == '"' || (ch == '\'' && token.length() > 1)) return STRING;
-    if (isdigit(ch)) return NUMBER;
+    if (isnum(token)||(token.size()>1&&token[0]=='-'&&isnum(token.substr(1)))) return NUMBER;
     if (token=="+"||token=="-"||token=="*"||token=="/"||token=="<"||token==">"||token=="THEN"||token=="="||token=="**") return OPERATOR;
     if(ch=='('||ch==')')
     return BRACKET;
@@ -280,7 +282,7 @@ void node::set_status()
     //    return;
     //}
     //初始化exp指针
-
+    handle_negative();
     string err;
     if(content.size()==1){
         err="Error:Line "+to_string(this->line_number)+" is empty";
@@ -346,6 +348,10 @@ void node::set_status()
             continue;
         }
         if (token == ")") {
+            if(oper.empty()){
+                err="Error:Wrong Math Expression";
+                throw myException(err);
+            }
             string tmp = ((CompoundExp*)oper.top())->getop();
             while (tmp != "(") {
 
@@ -476,6 +482,66 @@ void node::LL(Expression **t)
      ((CompoundExp*)*t)->lhs=((CompoundExp*)t1)->rhs;
      ((CompoundExp*)t1)->rhs=*t;
      *t=t1;
+
+}
+
+void node::handle_negative()
+{   stack<int> mark;
+    string err;
+    if(content.empty()) return;
+    if(content.size()==1) return;
+    for(int i=1;i<content.size();i++){
+        if(i==1&&content[1]=="-"){
+           mark.push(1);
+           if(i+1>=content.size()){
+               err="Error:Error in mathematical expression";
+               throw myException(err);
+           }
+           if(!isnum(content[i+1])){
+             err="Error:Error in mathematical expression" ;
+             throw myException(err);
+           }
+            int num=stoi(content[i+1]);
+            num=-num;
+            content[i+1]=to_string(num);
+        }
+        if(i>1){
+            if(content[i]=="-"&&(content[i-1]=="("||content[i-1]=="=")){
+                mark.push(i);
+                if(i+1>=content.size()){
+                    err="Error:Error in mathematical expression";
+                    throw myException(err);
+                }
+                if(!isnum(content[i+1])){
+                  err="Error:Error in mathematical expression" ;
+                  throw myException(err);
+                }
+                int num=stoi(content[i+1]);
+                num=-num;
+                content[i+1]=to_string(num);
+            }
+        }
+    }
+    while(!mark.empty()){
+        int num=mark.top();
+        mark.pop();
+        //vec.erase(vec.begin()+2);
+        content.erase(content.begin()+num);
+    }
+}
+
+bool node::isnum(string str)
+{
+    for (int i = 0; i<str.size(); i++)
+       {
+           if (!isdigit(str[i]))
+           {
+
+               return false;
+           }
+       }
+       return true;
+
 
 }
 
