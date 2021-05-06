@@ -20,23 +20,46 @@ MainWindow::MainWindow(QWidget *parent) :
             ;
     helpinf->insertPlainText(help);
 
+    wrong_dialog=new QDialog(this);
+    wrong_dialog->setMinimumSize(400,400);
+    wrong_dialog->setWindowTitle("ERROR");
+    wronginf=new QTextBrowser(wrong_dialog);
+    wronginf->setMinimumSize(400,400);
+    wrong_dialog->hide();
+    QString wrong="There is an error in this statement";
+    wronginf->insertPlainText(wrong);
 
+    normal_dialog=new QDialog(this);
+    normal_dialog->setMinimumSize(400,400);
+    normal_dialog->setWindowTitle("NORMOL EXIT");
+    normalinf=new QTextBrowser(normal_dialog);
+    normalinf->setMinimumSize(400,400);
+    normal_dialog->hide();
+    QString normal="The debugged program ends normally";
+    normalinf->insertPlainText(normal);
 
     connect(ui->Button_Run,&QPushButton::clicked,[=](){
         Run();
     });
 
     connect(ui->Button_Load,&QPushButton::clicked,[=](){
-//        string str=(ui->lineEdit->displayText()).toStdString();
-//        inputString(str);
         load();
-//        ui->Code_Display->clear();
-//        showcode();
-//        ui->lineEdit->clear();
-
     });
     connect(ui->Button_Clear,&QPushButton::clicked,[=](){
     clear();
+    });
+    connect(ui->debug_button,&QPushButton::clicked,[=](){
+        //进入单步模式
+        if(!debug_button_flag){
+            //设置load和Clear禁用
+            this->ui->Button_Load->setEnabled(false);
+            this->ui->Button_Clear->setEnabled(false);
+            if_run=true;
+            debug_button_flag=true;
+        }
+        else{
+            this->Step_Run();
+        }
     });
 
 }
@@ -57,7 +80,10 @@ void MainWindow::keyPressEvent(QKeyEvent *event){
             string str=(ui->lineEdit->displayText()).toStdString();
             valinput=str;
             ui->lineEdit->clear();
-            Run();
+            if(!this->debug_button_flag)Run();
+            else{
+                Step_Run();
+            }
         }
     }
 }
@@ -82,35 +108,42 @@ void MainWindow::showcode()
 //	// PiLiPaLa
 //	it++;
 //}
-void MainWindow::show_current_variables(){
-    //先清空上次的残留
-    this->ui->Variable_Display->clear();
-    std::map<string,ValueUnit>::iterator it;
-    it=this->run_state.getmap().begin();
-    while(it!=this->run_state.getmap().end()){
-        string str=it->first+": ";
-        if(it->second.type){
-            //int 类型
-            str+="INT = ";
-            str+=it->second.tostring();
-        }
-        else{
-            //string 类型
-            str+="STR = ";
-            str+=it->second.tostring();
-        }
-        it++;
-        ui->Variable_Display->insertPlainText(QString::fromStdString(str));
-        ui->Variable_Display->append("");
-    }
+//void MainWindow::show_current_variables(){
+//    //先清空上次的残留
+//    this->ui->Variable_Display->clear();
 
-}
+//   map<string,ValueUnit> valmap=this->run_state.getmap();
+//   for(int i=0;i<valmap.size();i++){
+//       string str=valmap[i].first+": ";
+//       if(valmap[i].second.type){
+//           str+="INT = ";
+//           str+=valmap[i].second.tostring();
+//       }
+//       else{
+//           str+="STR = ";
+//           str+=valmap[i].second.tostring();
+//       }
+//        ui->Variable_Display->insertPlainText(QString::fromStdString(str));
+//        ui->Variable_Display->append("");
+//   }
+//}
 
 void MainWindow::show_runcode(string str)
 {
     ui->Result_Display->insertPlainText(QString::fromStdString(str));
     ui->Result_Display->append("");
     interaction="";   //重置
+}
+
+void MainWindow::show_current_variables()
+{
+    this->ui->Variable_Display->clear();
+      vector<string> tmp=this->run_state.get_all_val();
+      for(int i=0;i<tmp.size();i++){
+
+          ui->Variable_Display->insertPlainText(QString::fromStdString(tmp[i]));
+          ui->Variable_Display->append("");
+      }
 }
 
 void MainWindow::inputString(string str)
@@ -222,6 +255,267 @@ void MainWindow::InputString(string str)
         ui->Statement_Display->append("");
     }
 
+}
+//单步调试的外裹函数
+void MainWindow::Step_Run(){
+    if(!if_run) return;
+    int judge;
+    try{
+        judge=this->step_run();
+        //返回值为-1代表结束
+        if(judge==-1) {
+            if_run=false;
+            this->debug_button_flag=false;
+            this->ui->Button_Clear->setEnabled(true);
+            this->ui->Button_Load->setEnabled(true);
+            this->normal_dialog->show();
+            return;
+        }
+        else{
+            //显示当前变量以及值
+            this->show_current_variables();
+            return;
+        }
+    }
+    catch(myException e){
+        if(!if_throw){
+            string err="Line "+to_string(run_line)+" "+e.report();
+            this->HightLight(run_line,QColor(255,100,100));
+            ui->Result_Display->insertPlainText(QString::fromStdString(err));
+            ui->Statement_Display->append("");
+            if_throw=true;
+            this->ui->Button_Clear->setEnabled(true);
+            this->ui->Button_Load->setEnabled(true);
+            this->wrong_dialog->show();
+            return;
+        }
+    }
+
+}
+//单步调式的语法树只有跑的那行，所以要先clear
+int MainWindow::step_run(){
+    static bool flag=true;//控制input只进行一次
+    node *p;
+    string err;
+    if(run_line==-1){
+        p=buffer.head->next;
+    }
+    else{
+        p=buffer.gotoline(run_line);
+    }
+    if(p==nullptr) return -1;
+    //跳过空行
+    while(p!=nullptr&&p->content.empty()){
+        p=p->next;
+        run_line=p->line_number;
+    }
+    if(p==nullptr) return -1;
+    string state_type = p->content[0];
+    if(state_type!="REM"&&state_type!="LET"&&state_type!="IF"&&state_type!="PRINT"&&state_type!="END"&&state_type!="INPUT"
+            &&state_type!="GOTO"&&state_type!="INPUTS"&&state_type!="PRINTF"){
+        err="Error: Unknown state "+state_type;
+        throw myException(err);
+    }
+    if (p->expr == nullptr&&state_type!="END")
+        p->set_status();
+    if (state_type == "REM") {
+        //语法树，先clear
+        ui->Statement_Display->clear();
+        ui->Statement_Display->insertPlainText(QString::number(p->line_number));
+        ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
+        ui->Statement_Display->append("");
+        string str;
+        for(int i=1;i<p->content.size();i++){
+            str+=p->content[i]+" ";
+        }
+        ui->Statement_Display->insertPlainText(QString::fromStdString(str));
+        ui->Statement_Display->append("");
+        //语法树结束
+        p = p->next;
+        if(p==nullptr) return -1;
+        else{
+            run_line=p->line_number;
+            return 0;
+        }
+    }
+    if (state_type == "LET"){
+        if(p->expr==nullptr){
+            err="Error: Wrong Expression";
+            throw myException(err);
+        }
+        p->state->execute(run_state);
+        //语法树,先clear
+        ui->Statement_Display->clear();
+        ui->Statement_Display->insertPlainText(QString::number(p->line_number));
+        ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
+        printtree(p->expr);
+        //语法树结束
+        p = p->next;
+        if(p==nullptr){
+            return -1;
+        }
+        else{
+            run_line=p->line_number;
+            return 0;
+        }
+    }
+    if (state_type == "IF") {
+        int linenum = ((IF_statement*)p->state)->get_line(run_state);
+        if(linenum!=0&&buffer.gotoline(linenum)==nullptr){
+            err="Syntax error: Line number "+std::to_string(linenum)+" does not exist";
+            throw myException(err);
+        }
+        //语法树,先clear
+        ui->Statement_Display->clear();
+        ui->Statement_Display->insertPlainText(QString::number(p->line_number));
+        ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
+        PrintIftree(p->expr);
+        //语法树结束
+
+        if (linenum == 0) {
+            p = p->next;
+            if(p==nullptr){
+                return -1;
+            }
+            else{
+               run_line=p->line_number;
+               return 0;
+            }
+        }
+        else {
+            run_line=linenum;
+            return 0;
+        }
+    }
+    if (state_type == "PRINT") {
+        if(p->expr==nullptr){
+            err="Error: Wrong Expression";
+            throw myException(err);
+        }
+        p->state->execute(run_state);
+        interaction=((PRINT_statement*)p->state)->getstring();
+        show_runcode(interaction);
+        //语法树,先clear
+        ui->Statement_Display->clear();
+        ui->Statement_Display->insertPlainText(QString::number(p->line_number));
+        ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
+        printtree(p->expr);
+        //语法树结束
+        p = p->next;
+        if(p==nullptr){
+            return -1;
+        }
+        else{
+            run_line=p->line_number;
+            return 0;
+        }
+    }
+    if(state_type=="PRINTF"){
+        p->state->execute(run_state);
+        interaction=((PRINTF_statement*)p->state)->get_final_string();
+        show_runcode(interaction);
+        //语法树,先clear
+        ui->Statement_Display->clear();
+        ui->Statement_Display->insertPlainText(QString::number(p->line_number));
+        ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
+        ui->Statement_Display->insertPlainText(QString::fromStdString(interaction));
+          //
+        p=p->next;
+        if(p==nullptr){
+            return -1;
+        }
+        else{
+            run_line=p->line_number;
+            return 0;
+        }
+    }
+    if (state_type == "GOTO") {
+
+        int linenum = ((GOTO_statement*)p->state)->get_line(run_state);
+        node* q=p;
+        p = buffer.gotoline(linenum);
+        //错误处理
+        if(p==nullptr){
+            err="Syntax error: Line number "+std::to_string(linenum)+" does not exist";
+            throw myException(err);
+        }
+        //语法树,先clear
+        ui->Statement_Display->clear();
+        ui->Statement_Display->insertPlainText(QString::number(q->line_number));
+        ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
+        printtree(q->expr);
+        //语法树结束
+        run_line=linenum;
+        return 0;
+    }
+    if (state_type == "INPUT") {
+        if(valinput==""){               //未得到输入，退出该函数
+            if(!flag) return 0;
+            if(p->expr->getType()!=IDENTIFIER){
+                err="Error: Input should be followed by a variable";
+                throw myException(err);
+            }
+            interaction= ((INPUT_statement*)p->state)->getname()+"?";
+            show_runcode(interaction);
+            //语法树,先清空
+            ui->Statement_Display->clear();
+            ui->Statement_Display->insertPlainText(QString::number(p->line_number));
+            ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
+            ui->Statement_Display->insertPlainText(QString::fromStdString(((INPUT_statement*)p->state)->getname()));
+//            //语法树结束
+            flag=false;
+            return 0;
+        }
+        ((INPUT_statement*)p->state)->get_value(valinput);
+        //execute把变量和值加入到run_state中
+        ((INPUT_statement*)p->state)->execute(run_state);
+        valinput="";
+        flag=true;
+        p = p->next;
+        if(p==nullptr){
+            return -1;
+        }
+        else{
+            run_line=p->line_number;
+            return 0;
+        }
+    }
+    if(state_type=="INPUTS"){
+        if(valinput==""){
+            //未得到输入，退出该函数
+            if(!flag) return 0;    //flag防止跑两次
+            if(p->expr->getType()!=IDENTIFIER){
+                err="Error: Input should be followed by a variable";
+                throw myException(err);
+            }
+            interaction=((INPUTS_statement *)p->state)->getname()+"?";
+            show_runcode(interaction);
+//            //语法树,先清空
+            ui->Statement_Display->clear();
+            ui->Statement_Display->insertPlainText(QString::number(p->line_number));
+            ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
+            ui->Statement_Display->insertPlainText(QString::fromStdString(((INPUT_statement*)p->state)->getname()));
+//            //语法树结束
+            flag=false;
+            return 0;
+        }
+        //把得到的输入加入到run_state中
+        ((INPUTS_statement*)p->state)->get_value(valinput);
+        ((INPUTS_statement*)p->state)->execute(run_state);
+        //重置，为下一次INPUTS做准备
+        valinput="";
+        flag=false;
+        p=p->next;
+        if(p==nullptr) return -1;
+        else{
+            run_line=p->line_number;
+            return 0;
+        }
+    }
+
+    if (state_type == "END") {
+        return -1;
+    }
 }
 
 void MainWindow::run()
@@ -355,6 +649,11 @@ void MainWindow::run()
                        throw myException(err);
                    }
                    interaction= ((INPUT_statement*)p->state)->getname()+"?";
+                   //语法树
+                   ui->Statement_Display->insertPlainText(QString::number(p->line_number));
+                   ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
+                   ui->Statement_Display->insertPlainText(QString::fromStdString(((INPUT_statement*)p->state)->getname()));
+                   //语法树结束
                    show_runcode(interaction);
                    flag=false;
                    return;
@@ -376,6 +675,11 @@ void MainWindow::run()
                        throw myException(err);
                    }
                    interaction=((INPUTS_statement *)p->state)->getname()+"?";
+                   //语法树
+                   ui->Statement_Display->insertPlainText(QString::number(p->line_number));
+                   ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
+                   ui->Statement_Display->insertPlainText(QString::fromStdString(((INPUT_statement*)p->state)->getname()));
+                   //语法树结束
                    show_runcode(interaction);
                    flag=false;
                    return;
@@ -405,8 +709,9 @@ void MainWindow::Run()
     catch(myException e){
         if(!if_throw){
         string err="Line "+to_string(run_line)+" "+e.report();
+        HightLight(run_line,QColor(255,100,100));
         ui->Result_Display->insertPlainText(QString::fromStdString(err));
-        ui->Statement_Display->append("");
+        ui->Result_Display->append("");
         if_throw=true;
         return;
         }
@@ -534,17 +839,52 @@ void MainWindow::clear()
     ui->Result_Display->clear();
     ui->Statement_Display->clear();
     ui->lineEdit->clear();
+    ui->Variable_Display->clear();
     buffer.clear();
     run_state.clear();
     node_input_flag=false;
     if_run=false;
     if_throw=false;
+    debug_button_flag=false;
     interaction="";
     valinput="";
     run_line=-1;
 }
+void MainWindow::HightLight(int line_num, QColor color){
+    //先把line_num转成在Display中的行号
+    int line=1;
+    node *p=buffer.head->next;
+    while(p!=nullptr&&p->line_number!=line_num){
+        p=p->next;
+        line++;
+    }
+    if(p==nullptr) return;
+    highLight(line,color);
+}
+//这里的line是1，2，3，4
+void MainWindow::highLight(int Line, QColor color)
+{   QList<QTextEdit::ExtraSelection> extras;
+    QTextEdit::ExtraSelection h;
+    QTextBlock line = ui->Code_Display->document()->findBlockByLineNumber(Line);
+    QTextCursor cursor(line);
+    h.cursor = cursor;
+    h.format.setProperty(QTextFormat::FullWidthSelection, true);
+    h.format.setBackground(color);
+    extras.append(h);
+    ui->Code_Display->setExtraSelections(extras);
+//    QList<QTextEdit::ExtraSelection> extraSelections;//提供一种方式显示选择的文本
+//    extraSelections = ui->plainTextEdit->extraSelections();//获取之前高亮的设置
+//    QTextEdit::ExtraSelection selection;
+//    selection.format.setBackground(color);
+//    selection.format.setProperty(QTextFormat::FullWidthSelection, true);
+//    selection.cursor = ui->plainTextEdit->textCursor();
+//    selection.cursor.movePosition(QTextCursor::Up);//光标移动到某一行。此处移动到上一行，上一行将高亮。
+//    extraSelections.append(selection);
+//    ui->plainTextEdit->setExtraSelections(extraSelections);//设置高亮
 
-
+//    ui->plainTextEdit->setExtraSelections(extraSelections);//设置高亮
+//     QList<QTextEdit::extraSelections>
+}
 
 
 

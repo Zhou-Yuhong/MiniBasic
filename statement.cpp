@@ -121,6 +121,7 @@ void PRINTF_statement::execute(EvalState &state){
     //把要替换的字符全部先存起来
     vector<string> strGroup;
     ValueUnit value;
+    string err;
     for(int i=1;i<this->expGroup.size();i++){
         Expression *exp=expGroup[i];
         switch(exp->getType()){
@@ -141,7 +142,15 @@ void PRINTF_statement::execute(EvalState &state){
     string::size_type pos(0);
     int j=0;
     while((pos=origin.find("{}"))!=string::npos){
+        if(j>=strGroup.size()){
+            err="Error: The PRINTF command lack parameters";
+            throw myException(err);
+        }
         origin.replace(pos,2,strGroup[j++]);
+    }
+    if(j!=strGroup.size()){
+        err="Error: too many parameters for PRINTF command";
+        throw myException(err);
     }
     this->final_string=origin;
 }

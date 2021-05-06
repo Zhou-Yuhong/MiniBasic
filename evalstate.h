@@ -2,6 +2,7 @@
 #define EVALSTATE_H
 #include <string>
 #include <map>
+#include <vector>
 #include "error.h"
 using namespace std;
 struct ValueUnit{
@@ -97,8 +98,25 @@ public:
     ValueUnit getValue(string var);
     bool isExist(string var);
     void clear();
-    map<string,ValueUnit> getmap(){
-        return this->valtable;
+    vector<string> get_all_val(){
+        vector<string> result;
+         std::map<string,ValueUnit>::iterator it=this->valtable.begin();
+         while(it!=this->valtable.end()){
+             string str=it->first+": ";
+             if(it->second.type){
+                 //int 类型
+                 str+="INT = ";
+                 str+=it->second.tostring();
+             }
+             else{
+                 //string 类型
+                 str+="STR = ";
+                 str+=it->second.tostring();
+             }
+             result.push_back(str);
+             it++;
+         }
+         return result;
     }
 
 private:
