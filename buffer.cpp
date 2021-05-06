@@ -37,8 +37,8 @@ void Buffer::clear()
 
 }
 void Buffer::addspace(string &input) {
-   static char special_char[] = { '+'   ,   '-'    ,'*' ,  '/'  ,'('  ,  ')' , '=','>','<' };
-   static set<char> myset(special_char, special_char + 9);
+   static char special_char[] = { '+'   ,   '-'    ,'*' ,  '/'  ,'('  ,  ')' , '=','>','<','\"','\'' };
+   static set<char> myset(special_char, special_char + 11);
     for (int i = 0; i < input.length(); i++) {
         if (myset.find(input[i]) != myset.end()) {
             if(input[i]!='*'){
@@ -96,30 +96,12 @@ int Buffer::inputstring(string &input) {
            throw myException(err);
         }
 
-//        stringstream instr_handle(input);
-//        while(instr_handle>>singlestring){
-//            totlestring.push_back(singlestring);
-//        }
-//        if(totlestring[0]=="RUN") return 1;
-//        if(totlestring[0]=="LOAD") return 2;
-//        if(totlestring[0]=="LIST") return 3;
-//        if(totlestring[0]=="CLEAR") return 4;
-//        if(totlestring[0]=="HELP") return 5;
-//        if(totlestring[0]=="QUIT") return 6;
-//        if(totlestring[0]="INPUT"){
-//            node *tmp=new node(0,totlestring);
-//            tmp->set_status();
-//        }
 
     }
     //读到了数字
     while (ss >> singlestring) {
         totlestring.push_back(singlestring);
     }
-//    if(totlestring.empty()){
-//        err="Error: Line "+to_string(numget)+" is empty";
-//        throw myException(err);
-//    }
     node* p = new node(numget, totlestring);
     addnode(p);
     //提前处理负号
@@ -163,7 +145,7 @@ void Buffer::run(EvalState& run_state) {
         }
         if (state_type == "PRINT") {
             p->state->execute(run_state);
-            cout << ((PRINT_statement*)p->state)->value << endl;
+            //cout << ((PRINT_statement*)p->state)->value << endl;
             p = p->next;
             continue;
         }
@@ -216,7 +198,7 @@ void Buffer::addnode(node*& T)
 TokenType node::getTokenType(string token)
 {
     char ch = token[0];
-    if (ch == '"' || (ch == '\'' && token.length() > 1)) return STRING;
+    if (token=="\""||token=="\'") return STRING;
     if (isnum(token)||(token.size()>1&&token[0]=='-'&&isnum(token.substr(1)))) return NUMBER;
     if (token=="+"||token=="-"||token=="*"||token=="/"||token=="<"||token==">"||token=="THEN"||token=="="||token=="**") return OPERATOR;
     if(ch=='('||ch==')')
@@ -272,17 +254,60 @@ int node::precedence(string token)
     return 0;
 
 }
+void node::initial_state(){
+    //根据state类型进行初始化
+    //初始化state
+    string state_type = content[0];
+    string err;
+    if (state_type == "REM") {
+        state = new REM_statement();
+        return;
+    }
+    if (state_type == "LET") {
+        //初始化exp
+        this->initial_exp();
+        state = new LET_statement(this->expr);
+        return;
+    }
+    if (state_type == "IF") {
+        this->initial_exp();
+        state = new IF_statement(this->expr);
+        return;
+    }
+    if (state_type == "PRINT") {
+        this->initial_exp();
+        state = new PRINT_statement(this->expr);
+        return;
+   }
+    if (state_type == "GOTO"){
+        this->initial_exp();
+        state = new GOTO_statement(this->expr);
+        return;
+    }
+    if (state_type == "END") {
+        state = new END_statement();
+        return;
+    }
+    if (state_type == "INPUT") {
+        this->initial_exp();
+        if(this->expr->getType()!=IDENTIFIER){
+            err="Error: INPUT should follow an variable";
+            throw myException(err);
+        }
+        string name = ((IdentifierExp*)this->expr)->getname();
+        state = new INPUT_statement(name);
+        return;
+    }
+    //错误处理
+    else{
+        err="unkown operation "+state_type;
+        throw myException(err);
+    }
+}
 
-void node::set_status()
-{
-    //if (content.size() == 1) return;
-    //this->expr = readE();
-    //if (read_index < content.size()) {
-    //    //有错，需要处理
-    //    return;
-    //}
+void node::initial_exp(){
     //初始化exp指针
-    handle_negative();
+    handle_negative();//处理负数（加0）
     string err;
     if(content.size()==1){
         err="Error:Line "+to_string(this->line_number)+" is empty";
@@ -303,6 +328,15 @@ void node::set_status()
         }
         if (type == NUMBER) {
             Expression* exp = new ConstantExp(atoi(token.c_str()));
+            iden.push(exp);
+            continue;
+        }
+        //如果是STRING类型
+        if(type==STRING){
+            //提取该string
+            string get=this->handle_string();
+            //生成string类型的Constant
+            Expression* exp=new ConstantExp(get);
             iden.push(exp);
             continue;
         }
@@ -422,48 +456,11 @@ void node::set_status()
         throw myException(err);
     }
     //exp指针初始化完成
+}
 
-    //初始化state指针
-    string state_type = content[0];
-    if (state_type == "REM") {
-        state = new REM_statement();
-        return;
-    }
-    if (state_type == "LET") {
-        state = new LET_statement(this->expr);
-        return;
-    }
-    if (state_type == "IF") {
-        state = new IF_statement(this->expr);
-        return;
-    }
-    if (state_type == "PRINT") {
-        state = new PRINT_statement(this->expr);
-        return;
-   }
-    if (state_type == "GOTO"){
-        state = new GOTO_statement(this->expr);
-        return;
-    }
-    if (state_type == "END") {
-        state = new END_statement();
-        return;
-    }
-    if (state_type == "INPUT") {
-        if(this->expr->getType()!=IDENTIFIER){
-            err="Error: INPUT should follow an variable";
-            throw myException(err);
-        }
-        string name = ((IdentifierExp*)this->expr)->getname();
-        state = new INPUT_statement(name);
-        return;
-    }
-    //错误处理
-    else{
-        err="unkown operation "+state_type;
-        throw myException(err);
-    }
-    //
+void node::set_status()
+{  
+ this->initial_state();
 }
 
 void node::transform()
@@ -487,6 +484,28 @@ void node::LL(Expression **t)
      *t=t1;
 
 }
+string node::handle_string(){
+    //读出"  或者 '
+    string mark=this->content[read_index-1];
+    string result="";
+    bool flag=false;//只有第一次不加空格，其他要加
+    while(read_index<this->content.size()&&this->content[read_index]!=mark){
+        if(!flag){
+            result+=this->content[read_index];
+            flag=true;
+            read_index++;
+            continue;
+        }
+        else{
+            result+=" "+this->content[read_index];
+            read_index++;
+            continue;
+        }
+    }
+    //退出的时候read_index停留在" 或'处，所以要把read_index加1，跳过这里
+    this->read_index++;
+    return result;
+}
 
 void node::handle_negative()
 {   stack<int> mark;
@@ -500,13 +519,7 @@ void node::handle_negative()
                err="Error:Error in mathematical expression";
                throw myException(err);
            }
-           //if(!isnum(content[i+1])){
-             //err="Error:Error in mathematical expression" ;
-             //throw myException(err);
-           //}
-           //int num=stoi(content[i+1]);
-           //num=-num;
-            //content[i+1]=to_string(num);
+
         }
         if(i>1){
             if(content[i]=="-"&&(content[i-1]=="("||content[i-1]=="=")){
@@ -515,13 +528,6 @@ void node::handle_negative()
                     err="Error:Error in mathematical expression";
                     throw myException(err);
                 }
-                //if(!isnum(content[i+1])){
-                  //err="Error:Error in mathematical expression" ;
-                  //throw myException(err);
-                //}
-//                int num=stoi(content[i+1]);
-//                num=-num;
-//                content[i+1]=to_string(num);
             }
             if(content[i]=="-"){
                 if(i+1>=content.size()){

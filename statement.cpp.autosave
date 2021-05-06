@@ -53,7 +53,21 @@ void INPUT_statement::execute(EvalState &state)
     state.setValue(this->var_name,this->value);
 }
 
-
+INPUTS_statement::INPUTS_statement(string &x){
+    var_name=x;
+}
+INPUTS_statement::~INPUTS_statement(){
+    
+}
+INPUTS_statement::execute(EvalState &state){
+    state.setValue(this->var_name,this->value);
+}
+INPUTS_statement::get_value(string &input){
+    this->value=input;
+}
+INPUTS_statement::getname(){
+    return this->var_name;
+}
 
 PRINT_statement::PRINT_statement(Expression *exp)
 {

@@ -1,9 +1,9 @@
 #ifndef ERROR_H
 #define ERROR_H
-#include <iostream>
+using namespace std;
 #include <exception>
+#include <iostream>
 #include <string>
-//:public exception
 class myException:public exception {
 public:
     myException(std::string information)

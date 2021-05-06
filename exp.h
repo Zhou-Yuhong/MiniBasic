@@ -7,7 +7,7 @@ class Expression {
 public:
     Expression();
     virtual ~Expression();
-    virtual int eval(EvalState& state) = 0;
+    virtual ValueUnit eval(EvalState& state) = 0;
     virtual string toString() = 0;
     virtual string gettoken()=0;
     virtual ExpressionType getType() = 0;
@@ -18,21 +18,23 @@ public:
 class ConstantExp : public Expression {
 public:
     ConstantExp(int value);
-    virtual int eval(EvalState& state);
+    ConstantExp(string value);
+    virtual ValueUnit eval(EvalState& state);
     virtual string toString();
     virtual ExpressionType getType();
     virtual string gettoken();
     virtual bool isop();
-    int getValue();
+    int getValueInt();
+    string getValueString();
 private:
-    int value;
+    ValueUnit value;
 };
 
 
 class IdentifierExp : public Expression {
 public:
     IdentifierExp(string name);
-    virtual int eval(EvalState& state);
+    virtual ValueUnit eval(EvalState& state);
     virtual string toString();
     virtual ExpressionType getType();
     virtual string gettoken();
@@ -47,7 +49,7 @@ public:
     CompoundExp(string op, Expression* lhs=nullptr, Expression* rhs=nullptr);
 
     virtual ~CompoundExp();
-    virtual int eval(EvalState& state);
+    virtual ValueUnit eval(EvalState& state);
     virtual string toString();
     virtual string gettoken();
     virtual ExpressionType getType();

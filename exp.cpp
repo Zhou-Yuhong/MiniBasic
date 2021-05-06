@@ -12,14 +12,25 @@ Expression::~Expression() {
 
 ConstantExp::ConstantExp(int value)
 {
-    this->value = value;
+    ValueUnit tmp(value);
+    this->value=tmp;
 }
-int ConstantExp::eval(EvalState& state)
+ConstantExp::ConstantExp(string value){
+    ValueUnit tmp(value);
+    this->value=tmp;
+}
+
+ValueUnit ConstantExp::eval(EvalState& state)
 {
     return value;
 }
 string ConstantExp::toString() {
-    return to_string(value);
+   if(value.type){
+    return to_string(value.getvalInt());
+   }
+   else{
+       return value.getvalString();
+   }
 }
 ExpressionType ConstantExp::getType() {
     return CONSTANT;
@@ -27,24 +38,30 @@ ExpressionType ConstantExp::getType() {
 
 string ConstantExp::gettoken()
 {
-    return to_string(value);
+    if(value.type){
+     return to_string(value.getvalInt());
+    }
+    else{
+        return value.getvalString();
+    }
 }
 
 bool ConstantExp::isop()
 {
     return false;
 }
-
-int ConstantExp::getValue() {
-    return value;
+int ConstantExp::getValueInt(){
+    return this->value.getvalInt();
 }
-
+string ConstantExp::getValueString(){
+    return this->value.getvalString();
+}
 
 IdentifierExp::IdentifierExp(string name) {
     this->name = name;
 }
 
-int IdentifierExp::eval(EvalState& state) {
+ValueUnit IdentifierExp::eval(EvalState& state) {
     if (!state.isExist(name)) {
         string err="Error: "+name+" is undefined";
         throw myException(err);
@@ -87,7 +104,7 @@ CompoundExp::~CompoundExp() {
     delete lhs;
     delete rhs;
 }
-int CompoundExp::eval(EvalState& state) {
+ValueUnit CompoundExp::eval(EvalState& state) {
     string err;
     if (op == "=") {
         if (lhs->getType() != IDENTIFIER) {
@@ -96,18 +113,20 @@ int CompoundExp::eval(EvalState& state) {
             throw myException(err);
             return 0;
         }
-        int val = rhs->eval(state);
+        ValueUnit val = rhs->eval(state);
 
         state.setValue(((IdentifierExp*)lhs)->getname(), val);
         return val;
     }
-    int left = lhs->eval(state);
-    int right = rhs->eval(state);
+    ValueUnit left = lhs->eval(state);
+    ValueUnit right = rhs->eval(state);
     if (op == "+") return left + right;
     if (op == "-") return left - right;
     if (op == "*") return left * right;
+    if (op == ">") return left>right;
+    if (op == "<") return left<right;
     if (op == "/") {
-        if (right == 0) {
+        if (right.getvalInt() == 0) {
             //除零错误
             err="Error:division by zero";
             throw myException(err);
@@ -115,32 +134,24 @@ int CompoundExp::eval(EvalState& state) {
         }
         return left / right;
     }
-    if (op == ">") {
-        return left > right ? 1 : 0;
-
-    }
-    if (op == "<") {
-        return left < right ? 1 : 0;
-    }
     if (op == "THEN") {
-        if (left !=0) return right;
-        else return 0;
+        if (left.getvalInt() !=0) return right;
+        else return ValueUnit(0);
     }
     if(op=="**"){
-        int num=pow(left,right);
+        int num=pow(left.getvalInt(),right.getvalInt());
         if(num==-2147483648) {
             err="Error: Numeric overflow";
             throw myException(err);
         }
         else
-        return pow(left,right);
+        return ValueUnit(num);
     }
     else{
         //非法运算符
         err="Error:Illegal operator"+op;
         throw myException(err);
     }
-    return 0;
 }
 string CompoundExp::toString() {
     return '(' + lhs->toString() + ' ' + op + ' ' + rhs->toString() + ')';

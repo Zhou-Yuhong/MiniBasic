@@ -17,7 +17,7 @@ public:
     ~REM_statement() override;
     void execute(EvalState &state) override;
 };
-
+//输入数字
 class INPUT_statement:public Statement{
 public:
     explicit INPUT_statement(string &x);
@@ -28,6 +28,20 @@ public:
 private:
     string var_name;
     int value;
+};
+//输入字符串
+class INPUTS_statement:public Statement{
+public:
+    //初始化变量名
+    explicit INPUTS_statement(string &x);
+    ~INPUTS_statement() override;
+    void execute(EvalState &state) override;
+    //初始化变量值
+    void get_value(string &input);
+    string getname();
+private:
+    string var_name;
+    string value;
 };
 
 class PRINT_statement: public Statement{

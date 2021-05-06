@@ -32,10 +32,13 @@ struct node {
     Expression* readT();
     Expression* readE(int prec = 0);
     int precedence(string token); //判断字符（运算符）优先级
+    void initial_exp();  //分离出生成exp的环节
+    void initial_state();//分离生成state的环节
     void set_status();
     void transform();
     void LL(Expression**t);
     void handle_negative();
+    string handle_string();
     bool isnum(string str);
 };
 class Buffer
@@ -48,7 +51,9 @@ public:
     Buffer();
     ~Buffer();
     void clear();
+    //在特殊字符前后添加空格
     void addspace(string &input);
+
     int inputstring(string& input);
     void addnode(node*& T);
     void initial();

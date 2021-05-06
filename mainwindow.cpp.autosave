@@ -300,7 +300,7 @@ void MainWindow::run()
                    return;
                }
                ((INPUT_statement*)p->state)->get_value(valinput);
-
+               //execute把变量和值加入到run_state中
                ((INPUT_statement*)p->state)->execute(run_state);
                valinput="";
                flag=true;
