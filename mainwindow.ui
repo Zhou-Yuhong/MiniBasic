@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>1000</height>
+    <width>578</width>
+    <height>541</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -64,14 +64,52 @@
      </layout>
     </item>
     <item>
-     <widget class="QLabel" name="Statement">
-      <property name="text">
-       <string>语法与语法树</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QTextBrowser" name="Statement_Display"/>
+     <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_6">
+        <item>
+         <widget class="QLabel" name="Code_2">
+          <property name="text">
+           <string>语法与语法树</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTextBrowser" name="Statement_Display"/>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_3">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_7">
+        <item>
+         <widget class="QLabel" name="Result_2">
+          <property name="text">
+           <string>当前变量</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTextBrowser" name="Variable_Display"/>
+        </item>
+       </layout>
+      </item>
+     </layout>
     </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -86,6 +124,13 @@
        <widget class="QPushButton" name="Button_Run">
         <property name="text">
          <string>执行代码（RUN）</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton">
+        <property name="text">
+         <string>调试/单步（Debug/Step）</string>
         </property>
        </widget>
       </item>
@@ -106,7 +151,7 @@
          <bool>true</bool>
         </property>
         <property name="text">
-         <string>TextLabel</string>
+         <string>命令输入窗口</string>
         </property>
        </widget>
       </item>
@@ -122,7 +167,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>578</width>
      <height>17</height>
     </rect>
    </property>

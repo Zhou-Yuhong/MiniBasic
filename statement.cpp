@@ -14,6 +14,9 @@ REM_statement::REM_statement(){
 REM_statement::~REM_statement(){
 
 }
+int REM_statement::get_statement_type(){
+    return REM_STATEMENT;
+}
 
 void REM_statement::execute(EvalState &state){
 
@@ -23,6 +26,9 @@ void REM_statement::execute(EvalState &state){
 
 INPUT_statement::INPUT_statement(string &x){
     var_name=x;
+}
+int INPUT_statement::get_statement_type(){
+    return INPUT_STATEMENT;
 }
 
 INPUT_statement::~INPUT_statement()
@@ -53,12 +59,31 @@ void INPUT_statement::execute(EvalState &state)
     state.setValue(this->var_name,this->value);
 }
 
+INPUTS_statement::INPUTS_statement(string &x){
+    var_name=x;
+}
+INPUTS_statement::~INPUTS_statement(){
 
+}
+void INPUTS_statement::execute(EvalState &state){
+    state.setValue(this->var_name,this->value);
+}
+int INPUTS_statement::get_statement_type(){
+    return INPUTS_STATEMENT;
+}
+
+void INPUTS_statement::get_value(string &input){
+    this->value=input;
+}
+string INPUTS_statement::getname(){
+    return this->var_name;
+}
 
 PRINT_statement::PRINT_statement(Expression *exp)
 {
     this->exp=exp;
 }
+
 
 PRINT_statement::~PRINT_statement()
 {
@@ -72,6 +97,9 @@ string PRINT_statement::getstring(){
         return this->value.getvalString();
     }
 }
+int PRINT_statement::get_statement_type(){
+    return PRINT_STATEMENT;
+}
 
 void PRINT_statement::execute(EvalState &state)
 {   if(exp==nullptr) {
@@ -80,10 +108,49 @@ void PRINT_statement::execute(EvalState &state)
     }
     this->value=exp->eval(state);
 }
+PRINTF_statement::PRINTF_statement(vector<Expression *> expGroup){
+    this->expGroup=expGroup;
+}
+PRINTF_statement::~PRINTF_statement(){
 
-
-
-
+}
+void PRINTF_statement::execute(EvalState &state){
+    //得到初始字符串
+    Expression *first=this->expGroup[0];
+    string origin=first->toString();
+    //把要替换的字符全部先存起来
+    vector<string> strGroup;
+    ValueUnit value;
+    for(int i=1;i<this->expGroup.size();i++){
+        Expression *exp=expGroup[i];
+        switch(exp->getType()){
+        case CONSTANT:
+            strGroup.push_back(exp->toString());
+            continue;
+        case IDENTIFIER:
+           value=((IdentifierExp *)exp)->eval(state);
+            strGroup.push_back(value.tostring());
+            continue;
+        case COMPOUND:
+            value=((CompoundExp*)exp)->eval(state);
+            strGroup.push_back(value.tostring());
+            continue;
+        }
+    }
+    //把初始字符中的{}全部换了
+    string::size_type pos(0);
+    int j=0;
+    while((pos=origin.find("{}"))!=string::npos){
+        origin.replace(pos,2,strGroup[j++]);
+    }
+    this->final_string=origin;
+}
+int PRINTF_statement::get_statement_type(){
+    return PRINTF_STATEMENT;
+}
+string PRINTF_statement::get_final_string(){
+    return this->final_string;
+}
 
 END_statement::END_statement()
 {    //空
@@ -93,6 +160,9 @@ END_statement::END_statement()
 END_statement::~END_statement()
 {    //空
 
+}
+int END_statement::get_statement_type(){
+    return END_STATEMENT;
 }
 
 void END_statement::execute(EvalState &state)
@@ -114,6 +184,9 @@ LET_statement::~LET_statement()
 {
     delete exp;
 }
+int LET_statement::get_statement_type(){
+    return LET_STATEMENT;
+}
 
 void LET_statement::execute(EvalState &state)
 {
@@ -126,6 +199,10 @@ void LET_statement::execute(EvalState &state)
 GOTO_statement::GOTO_statement(Expression *exp) {
     this->exp=exp;
 }
+int GOTO_statement::get_statement_type(){
+    return GOTO_STATEMENT;
+}
+
 int GOTO_statement::get_line(EvalState&state) {
     return this->exp->eval(state).getvalInt();
 }
@@ -139,6 +216,10 @@ GOTO_statement::~GOTO_statement() {
 IF_statement::IF_statement(Expression *input) {
     this->exp = input;
 }
+int IF_statement::get_statement_type(){
+    return IF_STATEMENT;
+}
+
 IF_statement::~IF_statement() {
     delete exp;
 }

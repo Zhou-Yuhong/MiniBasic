@@ -73,12 +73,36 @@ void MainWindow::showcode()
         ui->Code_Display->append("");
         p=p->next;
     }
-//    map<int,string>::iterator p=buffer.source_code.begin();
-//    for(;p!=buffer.source_code.end();p++){
-//        string str=to_string(p->first)+" "+p->second;
-//        ui->Code_Display->insertPlainText(QString::fromStdString(str));
-//        ui->Code_Display->append("");
-//    }
+}
+//std::map<CString, double>::iterator it;
+//it = map.begin();
+//while (it != map.end())
+//{
+//	CString line = it->second.ToString();
+//	// PiLiPaLa
+//	it++;
+//}
+void MainWindow::show_current_variables(){
+    //先清空上次的残留
+    this->ui->Variable_Display->clear();
+    std::map<string,ValueUnit>::iterator it;
+    it=this->run_state.getmap().begin();
+    while(it!=this->run_state.getmap().end()){
+        string str=it->first+": ";
+        if(it->second.type){
+            //int 类型
+            str+="INT = ";
+            str+=it->second.tostring();
+        }
+        else{
+            //string 类型
+            str+="STR = ";
+            str+=it->second.tostring();
+        }
+        it++;
+        ui->Variable_Display->insertPlainText(QString::fromStdString(str));
+        ui->Variable_Display->append("");
+    }
 
 }
 
@@ -91,12 +115,20 @@ void MainWindow::show_runcode(string str)
 
 void MainWindow::inputString(string str)
 {
-    //如果是input的后续输入
+    //如果是input或者inputs的后续输入
     if(node_input_flag){
-     ((INPUT_statement*)ins_node->state)->get_value(str);
-     ((INPUT_statement*)ins_node->state)->execute(run_state);
-        node_input_flag=false;
-        return;
+        if(ins_node->state->get_statement_type()==INPUT_STATEMENT){
+                 ((INPUT_statement*)ins_node->state)->get_value(str);
+                 ((INPUT_statement*)ins_node->state)->execute(run_state);
+                    node_input_flag=false;
+                    return;
+        }
+        if(ins_node->state->get_statement_type()==INPUTS_STATEMENT){
+                 ((INPUTS_statement*)ins_node->state)->get_value(str);
+                 ((INPUTS_statement*)ins_node->state)->execute(run_state);
+                    node_input_flag=false;
+                    return;
+        }
     }
     //针对下面的case7、8、9进行提前处理
     string copy=str;
@@ -111,7 +143,7 @@ void MainWindow::inputString(string str)
 
     int ins_type=this->buffer.inputstring(str);
     switch(ins_type){
-    //0为输入代码，1为Run,2为LOAD，3为LIST，4为CLEAR，5为HELP，6为QUIT,7为INPUT，8为LET，9为PRINT
+    //0为输入代码，1为Run,2为LOAD，3为LIST，4为CLEAR，5为HELP，6为QUIT,7为INPUT，8为LET，9为PRINT,10为INPUTS,11为PRINTF
       case 0:
         return;
       case 1:
@@ -160,7 +192,22 @@ void MainWindow::inputString(string str)
         interaction=((PRINT_statement*)ins_node->state)->getstring();
         show_runcode(interaction);
         return;
-
+       case 10:
+       delete ins_node;
+       ins_node=new node(0,inf_vec);
+       ins_node->set_status();
+       interaction= ((INPUTS_statement*)ins_node->state)->getname()+"?";
+       show_runcode(interaction);
+       node_input_flag=true;
+       return;
+       case 11:
+       delete ins_node;
+       ins_node=new node(0,inf_vec);
+       ins_node->set_status();
+       ins_node->state->execute(run_state);
+       interaction=((PRINTF_statement*)ins_node->state)->get_final_string();
+       show_runcode(interaction);
+       return;
     }
 }
 
@@ -196,7 +243,8 @@ void MainWindow::run()
            run_line=p->line_number;
            //错误处理
            string state_type = p->content[0];
-           if(state_type!="REM"&&state_type!="LET"&&state_type!="IF"&&state_type!="PRINT"&&state_type!="END"&&state_type!="INPUT"&&state_type!="GOTO"){
+           if(state_type!="REM"&&state_type!="LET"&&state_type!="IF"&&state_type!="PRINT"&&state_type!="END"&&state_type!="INPUT"
+                   &&state_type!="GOTO"&&state_type!="INPUTS"&&state_type!="PRINTF"){
                err="Error: Unknown state "+state_type;
                throw myException(err);
            }
@@ -269,6 +317,18 @@ void MainWindow::run()
 
                continue;
            }
+           if(state_type=="PRINTF"){
+               p->state->execute(run_state);
+               interaction=((PRINTF_statement*)p->state)->get_final_string();
+               show_runcode(interaction);
+               //语法树
+               ui->Statement_Display->insertPlainText(QString::number(p->line_number));
+               ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
+               ui->Statement_Display->insertPlainText(QString::fromStdString(interaction));
+                 //
+               p=p->next;
+               continue;
+           }
            if (state_type == "GOTO") {
 
                int linenum = ((GOTO_statement*)p->state)->get_line(run_state);
@@ -300,13 +360,36 @@ void MainWindow::run()
                    return;
                }
                ((INPUT_statement*)p->state)->get_value(valinput);
-
+               //execute把变量和值加入到run_state中
                ((INPUT_statement*)p->state)->execute(run_state);
                valinput="";
                flag=true;
                p = p->next;
                continue;
            }
+           if(state_type=="INPUTS"){
+               if(valinput==""){
+                   //未得到输入，退出该函数
+                   if(!flag) return;    //flag防止跑两次
+                   if(p->expr->getType()!=IDENTIFIER){
+                       err="Error: Input should be followed by a variable";
+                       throw myException(err);
+                   }
+                   interaction=((INPUTS_statement *)p->state)->getname()+"?";
+                   show_runcode(interaction);
+                   flag=false;
+                   return;
+               }
+               //把得到的输入加入到run_state中
+               ((INPUTS_statement*)p->state)->get_value(valinput);
+               ((INPUTS_statement*)p->state)->execute(run_state);
+               //重置，为下一次INPUTS做准备
+               valinput="";
+               flag=false;
+               p=p->next;
+               continue;
+           }
+
            if (state_type == "END") {
                break;
            }

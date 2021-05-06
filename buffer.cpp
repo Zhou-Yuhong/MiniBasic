@@ -37,8 +37,8 @@ void Buffer::clear()
 
 }
 void Buffer::addspace(string &input) {
-   static char special_char[] = { '+'   ,   '-'    ,'*' ,  '/'  ,'('  ,  ')' , '=','>','<','\"','\'' };
-   static set<char> myset(special_char, special_char + 11);
+   static char special_char[] = { '+'   ,   '-'    ,'*' ,  '/'  ,'('  ,  ')' , '=','>','<','\"','\'',',' };
+   static set<char> myset(special_char, special_char + 12);
     for (int i = 0; i < input.length(); i++) {
         if (myset.find(input[i]) != myset.end()) {
             if(input[i]!='*'){
@@ -91,6 +91,8 @@ int Buffer::inputstring(string &input) {
         if(singlestring=="INPUT") return 7;
         if(singlestring=="LET") return 8;
         if(singlestring=="PRINT") return 9;
+        if(singlestring=="INPUTS") return 10;
+        if(singlestring=="PRINTF") return 11;
         else{
            err="Error:Unknown command "+input;
            throw myException(err);
@@ -105,7 +107,6 @@ int Buffer::inputstring(string &input) {
     node* p = new node(numget, totlestring);
     addnode(p);
     //提前处理负号
-
     //  source_code.insert(map<int,string>::value_type(numget,totlestring));
     return 0;//如果是代码，返回0
 }
@@ -206,43 +207,6 @@ TokenType node::getTokenType(string token)
     return WORDS;
 }
 
-Expression* node::readT()
-{
-    string token = content[read_index];
-    read_index++;
-    TokenType type = getTokenType(token);
-    if (type == WORDS) return new IdentifierExp(token);
-    if (type == NUMBER) return new ConstantExp(atoi(token.c_str()));
-    if (token != "(") {
-        //错误待处理
-        return nullptr;
-    }
-    Expression* exp = readE();
-    if (read_index < content.size() && content[read_index] != ")") {
-        //错误待处理
-        return nullptr;
-    }
-    return exp;
-}
-
-Expression* node::readE(int prec)
-{
-    Expression* exp = readT();
-    string token;
-    while (true) {
-        if (read_index >= content.size()) break;
-        token = content[read_index];
-        read_index++;
-        int newprec = precedence(token);
-        if (newprec > prec) {
-            Expression* rhs = readE(newprec);
-            exp = new CompoundExp(token, exp, rhs);
-        }
-
-    }
-    return exp;
-
-}
 
 int node::precedence(string token)
 {
@@ -291,11 +255,25 @@ void node::initial_state(){
     if (state_type == "INPUT") {
         this->initial_exp();
         if(this->expr->getType()!=IDENTIFIER){
-            err="Error: INPUT should follow an variable";
+            err="Error: INPUT should follow a variable";
             throw myException(err);
         }
         string name = ((IdentifierExp*)this->expr)->getname();
         state = new INPUT_statement(name);
+        return;
+    }
+    if(state_type=="INPUTS"){
+        this->initial_exp();
+        if(this->expr->getType()!=IDENTIFIER){
+            err="Error: INPUTS should follow a variable";
+            throw myException(err);
+        }
+        string name = ((IdentifierExp*)this->expr)->getname();
+        state=new INPUTS_statement(name);
+        return;
+    }
+    if(state_type=="PRINTF"){
+        this->state=new PRINTF_statement(this->printf_prework());
         return;
     }
     //错误处理
@@ -333,7 +311,7 @@ void node::initial_exp(){
         }
         //如果是STRING类型
         if(type==STRING){
-            //提取该string
+            //提取该string,去掉引号
             string get=this->handle_string();
             //生成string类型的Constant
             Expression* exp=new ConstantExp(get);
@@ -504,6 +482,33 @@ string node::handle_string(){
     }
     //退出的时候read_index停留在" 或'处，所以要把read_index加1，跳过这里
     this->read_index++;
+    return result;
+}
+vector<Expression*> node::printf_prework(){
+    string token;
+    vector<Expression*> result;
+    while(read_index<this->content.size()){
+        token=this->content[read_index];
+        read_index++;
+        if(token==",") continue;
+        TokenType type=getTokenType(token);
+        if(type==WORDS){
+            Expression* exp=new IdentifierExp(token);
+            result.push_back(exp);
+            continue;
+        }
+        if(type==NUMBER){
+            Expression * exp=new ConstantExp(atoi(token.c_str()));
+            result.push_back(exp);
+            continue;
+        }
+        if(type==STRING){
+            string str=this->handle_string();
+            Expression *exp=new ConstantExp(str);
+            result.push_back(exp);
+            continue;
+        }
+    }
     return result;
 }
 

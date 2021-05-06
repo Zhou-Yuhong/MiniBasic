@@ -29,8 +29,6 @@ struct node {
         return content[read_index];
     }
     TokenType getTokenType(string token);
-    Expression* readT();
-    Expression* readE(int prec = 0);
     int precedence(string token); //判断字符（运算符）优先级
     void initial_exp();  //分离出生成exp的环节
     void initial_state();//分离生成state的环节
@@ -39,6 +37,7 @@ struct node {
     void LL(Expression**t);
     void handle_negative();
     string handle_string();
+    vector<Expression*> printf_prework(); //处理类型为PRINTF的state的提前工作
     bool isnum(string str);
 };
 class Buffer

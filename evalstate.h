@@ -75,7 +75,15 @@ struct ValueUnit{
        int result= this->getvalInt()<b.getvalInt()? 1:0;
        return ValueUnit(result);
     }
-
+    //返回string(若存储的是string则直接返回，若存储的是int 则转成string再返回)
+    string tostring(){
+        if(this->type){
+            return to_string(this->valInt);
+        }
+        else{
+            return this->valString;
+        }
+    }
 };
 
 class EvalState {
@@ -89,6 +97,9 @@ public:
     ValueUnit getValue(string var);
     bool isExist(string var);
     void clear();
+    map<string,ValueUnit> getmap(){
+        return this->valtable;
+    }
 
 private:
     map<string, ValueUnit> valtable;
