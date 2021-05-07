@@ -229,7 +229,9 @@ void node::initial_state(){
     }
     if (state_type == "LET") {
         //初始化exp
+        if(expr==nullptr){
         this->initial_exp();
+        }
         state = new LET_statement(this->expr);
         return;
     }
@@ -239,12 +241,16 @@ void node::initial_state(){
         return;
     }
     if (state_type == "PRINT") {
+        if(expr==nullptr){
         this->initial_exp();
+        }
         state = new PRINT_statement(this->expr);
         return;
    }
     if (state_type == "GOTO"){
+        if(expr==nullptr){
         this->initial_exp();
+        }
         state = new GOTO_statement(this->expr);
         return;
     }
@@ -253,7 +259,9 @@ void node::initial_state(){
         return;
     }
     if (state_type == "INPUT") {
+        if(expr==nullptr){
         this->initial_exp();
+        }
         if(this->expr->getType()!=IDENTIFIER){
             err="Error: INPUT should follow a variable";
             throw myException(err);
@@ -263,7 +271,9 @@ void node::initial_state(){
         return;
     }
     if(state_type=="INPUTS"){
+        if(expr==nullptr){
         this->initial_exp();
+        }
         if(this->expr->getType()!=IDENTIFIER){
             err="Error: INPUTS should follow a variable";
             throw myException(err);
@@ -273,6 +283,7 @@ void node::initial_state(){
         return;
     }
     if(state_type=="PRINTF"){
+        //只有printf不需要初始化exp
         this->state=new PRINTF_statement(this->printf_prework());
         return;
     }
@@ -284,6 +295,8 @@ void node::initial_state(){
 }
 
 void node::initial_exp(){
+    //防止PRINTF进入这里
+    if(this->content[0]=="PRINTF") return;
     //初始化exp指针
     handle_negative();//处理负数（加0）
     string err;

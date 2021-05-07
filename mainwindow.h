@@ -34,6 +34,7 @@ public:
     void showcode();
     void show_runcode(string str);
     //显示当前变量
+    QList<QPair<int, QColor>> highlights;
     void show_current_variables();
     void inputString(string str);
     void InputString(string str);
@@ -42,8 +43,9 @@ public:
     void run();
     void Run();//run的外裹函数
     void load();//从文件读
-    void HightLight(int line_num,QColor color);//高亮的外部函数
-    void highLight(int Line, QColor color);//高亮的内部函数
+    //void HightLight(int line_num,QColor color);//高亮的外部函数
+    //void highLight(int Line, QColor color);//高亮的内部函数
+    void highLight();  //高亮的总函数
     void help();
     string interaction="";
     string valinput="";
@@ -51,11 +53,18 @@ public:
     int run_line=-1;
     bool if_throw=false;//处理莫名其妙代码乱跑的问题
     void printtree(Expression* p);
+    //由一个结点生成语法树
+    void syntaxtree(node * p);
+    //遍历结点生成语法树，同时把错误的行加入到vector<int> error_line中
+    void syntax_all();
     void PrintIftree(Expression* p,bool flag=true);
     void Ins_handle(string input);
     void clear();
     node * ins_node=nullptr;   //用于处理INPUT，LET，PRINT，INPUTS,PRINTF指令的node*
     bool node_input_flag=false;  //上述node是否处于input等待输入的状态
+    vector<int> error_line; //存储所有有错的行的编号进行高亮
+    int Green_Line=-1;//记录要高亮为绿色的地方
+    int transfer_linenum(int linenum);//把linenum转换成处于Code_Display的第几行(从0开始),不存在则返回-1
 private:
     Ui::MainWindow *ui;
     QDialog* dialog;//帮助的dialog
