@@ -293,6 +293,24 @@ void node::initial_state(){
         throw myException(err);
     }
 }
+void node::testquota(){
+    string mark1="\"";
+    string mark2="\'";
+    int num1=0;
+    int num2=0;
+    string err;
+    for(int i=0;i<this->content.size();i++){
+        if(this->content[i]==mark1) num1++;
+        if(this->content[i]==mark2)  num2++;
+    }
+    if(num1==0&&num2==0) return;
+    if(num1==2&&num2==0) return;
+    if(num1==0&&num2==2) return;
+    else{
+        err="Error:quatation mark error";
+        throw myException(err);
+    }
+}
 
 void node::initial_exp(){
     //防止PRINTF进入这里
@@ -304,6 +322,8 @@ void node::initial_exp(){
         err="Error:Line "+to_string(this->line_number)+" is empty";
         throw myException(err);
     }
+    //判断""的个数以及''的个数
+    testquota();
     stack<Expression*> oper;
     stack<Expression*> iden;
     string token;

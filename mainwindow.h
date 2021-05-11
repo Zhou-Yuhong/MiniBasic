@@ -52,6 +52,7 @@ public:
     //正在跑的行号
     int run_line=-1;
     bool if_throw=false;//处理莫名其妙代码乱跑的问题
+    bool print_tree_once=true;
     void printtree(Expression* p);
     //由一个结点生成语法树
     void syntaxtree(node * p);

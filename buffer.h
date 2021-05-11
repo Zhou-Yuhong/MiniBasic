@@ -39,6 +39,8 @@ struct node {
     string handle_string();
     vector<Expression*> printf_prework(); //处理类型为PRINTF的state的提前工作
     bool isnum(string str);
+    //判断" ,' 个数
+    void testquota();
 };
 class Buffer
 {

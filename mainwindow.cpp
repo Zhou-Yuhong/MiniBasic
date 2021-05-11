@@ -652,7 +652,7 @@ void MainWindow::run()
                ((INPUTS_statement*)p->state)->execute(run_state);
                //重置，为下一次INPUTS做准备
                valinput="";
-               flag=false;
+               flag=true;
                p=p->next;
                continue;
            }
@@ -666,7 +666,10 @@ void MainWindow::run()
 
 void MainWindow::Run()
 {
-    //先生成语法树
+    //解除限制
+    this->ui->Button_Clear->setEnabled(true);
+    this->ui->Button_Load->setEnabled(true);
+    //先生成语法树,仅一次
     this->syntax_all();
     //根据语法树进行高亮
     this->Green_Line=-1;
@@ -692,6 +695,7 @@ void MainWindow::Run()
 //载入文件并显示
 void MainWindow::load()
 {
+    this->clear();
     QString path=QFileDialog::getOpenFileName(this,"打开文件","C:\\Users\\周昱宏\\Desktop");
     QFile file(path);
     file.open(QIODevice::ReadOnly);
@@ -705,6 +709,8 @@ void MainWindow::load()
     file.close();
     ui->Code_Display->clear();
     showcode();
+    ui->Statement_Display->clear();
+    ui->Result_Display->clear();
     ui->lineEdit->clear();
 }
 
@@ -713,6 +719,7 @@ void MainWindow::help()
     this->dialog->show();
 }
 void MainWindow::syntax_all(){
+    if(this->print_tree_once==false) return;
     node *p=this->buffer.head->next;
     while(p!=nullptr){
         try{
@@ -726,6 +733,7 @@ void MainWindow::syntax_all(){
             continue;
         }
     }
+    this->print_tree_once=false;
 }
 
 //由一个node*打印语法树
@@ -786,7 +794,8 @@ void MainWindow::syntaxtree(node *p){
         for(int i=1;i<p->content.size();i++){
            tmp+=p->content[i]+" ";
         }
-        ui->Statement_Display->insertPlainText(QString::fromStdString(tmp));
+         ui->Statement_Display->insertPlainText(QString::fromStdString(tmp));
+         ui->Statement_Display->append("");
         return;
     }
     if(state_type=="GOTO"){
@@ -808,6 +817,7 @@ void MainWindow::syntaxtree(node *p){
             tmp+=p->content[i]+" ";
         }
         ui->Statement_Display->insertPlainText(QString::fromStdString(tmp));
+        ui->Statement_Display->append("");
         //语法树结束
         return;
     }
@@ -821,6 +831,7 @@ void MainWindow::syntaxtree(node *p){
             tmp+=p->content[i]+" ";
         }
         ui->Statement_Display->insertPlainText(QString::fromStdString(tmp));
+        ui->Statement_Display->append("");
         //语法树结束
     }
     if(state_type=="END"){
@@ -934,6 +945,7 @@ void MainWindow::clear()
     if_run=false;
     if_throw=false;
     debug_button_flag=false;
+    this->print_tree_once=true;
     interaction="";
     valinput="";
     run_line=-1;
