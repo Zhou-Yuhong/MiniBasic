@@ -118,6 +118,19 @@ ValueUnit CompoundExp::eval(EvalState& state) {
         state.setValue(((IdentifierExp*)lhs)->getname(), val);
         return val;
     }
+    //先处理THEN 防止赋值发生
+    if (op == "THEN") {
+        ValueUnit right=rhs->eval(state);
+        if(lhs->getType()==COMPOUND&&((CompoundExp*)lhs)->getop()=="="){
+            //单独处理=情况
+            if(((CompoundExp*)lhs)->lhs->eval(state).getvalInt()==((CompoundExp*)lhs)->rhs->eval(state).getvalInt())
+             return right;
+            else return ValueUnit(0);
+        }
+        ValueUnit left=lhs->eval(state);
+        if (left.getvalInt() !=0) return right;
+        else return ValueUnit(0);
+    }
     ValueUnit left = lhs->eval(state);
     ValueUnit right = rhs->eval(state);
     if (op == "+") return left + right;
@@ -134,10 +147,7 @@ ValueUnit CompoundExp::eval(EvalState& state) {
         }
         return left / right;
     }
-    if (op == "THEN") {
-        if (left.getvalInt() !=0) return right;
-        else return ValueUnit(0);
-    }
+
     if(op=="**"){
         int num=pow(left.getvalInt(),right.getvalInt());
         if(num==-2147483648) {

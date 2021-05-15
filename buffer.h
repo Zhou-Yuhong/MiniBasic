@@ -17,7 +17,7 @@ struct node {
     int read_index = 1;
     vector<string> content;
     node* next;
-    Statement* state;
+    Statement* state=nullptr;
     Expression* expr = nullptr;
     node(int numget, vector<string>& input, node* T = NULL) {
         line_number = numget;

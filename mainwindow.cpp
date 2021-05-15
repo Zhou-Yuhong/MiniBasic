@@ -84,13 +84,19 @@ void MainWindow::keyPressEvent(QKeyEvent *event){
         showcode();
         ui->lineEdit->clear();
         }
-        if(if_run){           //程序开始运行
+        if(if_run&&(wait_for_input||wait_for_inputs)){           //程序开始运行
             string str=(ui->lineEdit->displayText()).toStdString();
             valinput=str;
             ui->lineEdit->clear();
-            if(!this->debug_button_flag)Run();
+            if(valinput!=""&&(wait_for_input||wait_for_inputs)){   //新加的一句
+            if(!this->debug_button_flag){
+
+                int kkkk=999;
+                Run();
+            }
             else{
                 Step_Run();
+            }
             }
         }
     }
@@ -157,20 +163,22 @@ void MainWindow::show_current_variables()
 void MainWindow::inputString(string str)
 {
     //如果是input或者inputs的后续输入
-    if(node_input_flag){
-        if(ins_node->state->get_statement_type()==INPUT_STATEMENT){
+       if(wait_for_input){
+
                  ((INPUT_statement*)ins_node->state)->get_value(str);
                  ((INPUT_statement*)ins_node->state)->execute(run_state);
-                    node_input_flag=false;
+                   wait_for_input=false;
                     return;
-        }
-        if(ins_node->state->get_statement_type()==INPUTS_STATEMENT){
+
+       }
+
+        if(wait_for_inputs){
                  ((INPUTS_statement*)ins_node->state)->get_value(str);
                  ((INPUTS_statement*)ins_node->state)->execute(run_state);
-                    node_input_flag=false;
+                 wait_for_inputs=false;
                     return;
         }
-    }
+
     //针对下面的case7、8、9进行提前处理
     string copy=str;
     buffer.addspace(copy);
@@ -209,7 +217,7 @@ void MainWindow::inputString(string str)
         ins_node->set_status();
         interaction= ((INPUT_statement*)ins_node->state)->getname()+"?";
         show_runcode(interaction);
-        node_input_flag=true;
+        wait_for_input=true;
         return;
       case 8:
         delete ins_node;
@@ -239,7 +247,8 @@ void MainWindow::inputString(string str)
        ins_node->set_status();
        interaction= ((INPUTS_statement*)ins_node->state)->getname()+"?";
        show_runcode(interaction);
-       node_input_flag=true;
+       //node_input_flag=true;
+       wait_for_inputs=true;
        return;
        case 11:
        delete ins_node;
@@ -305,7 +314,7 @@ void MainWindow::Step_Run(){
 }
 //单步调式的语法树只有跑的那行，所以要先clear
 int MainWindow::step_run(){
-    static bool flag=true;//控制input只进行一次
+    //static bool flag=true;//控制input只进行一次
     node *p;
     string err;
     if(run_line==-1){
@@ -460,8 +469,9 @@ int MainWindow::step_run(){
         return 0;
     }
     if (state_type == "INPUT") {
-        if(valinput==""){               //未得到输入，退出该函数
-            if(!flag) return 0;
+        //if(valinput==""){ //未得到输入，退出该函数
+        if(!wait_for_input){
+
             if(p->expr->getType()!=IDENTIFIER){
                 err="Error: Input should be followed by a variable";
                 throw myException(err);
@@ -474,14 +484,14 @@ int MainWindow::step_run(){
             ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
             ui->Statement_Display->insertPlainText(QString::fromStdString(((INPUT_statement*)p->state)->getname()));
 //            //语法树结束
-            flag=false;
+            wait_for_input=true;
             return 0;
         }
         ((INPUT_statement*)p->state)->get_value(valinput);
         //execute把变量和值加入到run_state中
         ((INPUT_statement*)p->state)->execute(run_state);
         valinput="";
-        flag=true;
+        wait_for_input=false;
         p = p->next;
         if(p==nullptr){
             return -1;
@@ -492,9 +502,9 @@ int MainWindow::step_run(){
         }
     }
     if(state_type=="INPUTS"){
-        if(valinput==""){
+         if(!wait_for_inputs){
             //未得到输入，退出该函数
-            if(!flag) return 0;    //flag防止跑两次
+               //flag防止跑两次
             if(p->expr->getType()!=IDENTIFIER){
                 err="Error: Input should be followed by a variable";
                 throw myException(err);
@@ -507,7 +517,7 @@ int MainWindow::step_run(){
             ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
             ui->Statement_Display->insertPlainText(QString::fromStdString(((INPUT_statement*)p->state)->getname()));
 //            //语法树结束
-            flag=false;
+           wait_for_inputs=true;
             return 0;
         }
         //把得到的输入加入到run_state中
@@ -515,7 +525,7 @@ int MainWindow::step_run(){
         ((INPUTS_statement*)p->state)->execute(run_state);
         //重置，为下一次INPUTS做准备
         valinput="";
-        flag=false;
+        wait_for_inputs=false;
         p=p->next;
         if(p==nullptr) return -1;
         else{
@@ -530,8 +540,9 @@ int MainWindow::step_run(){
 }
 
 void MainWindow::run()
-{   if(!if_run) return;
-    static bool flag=true;//控制input只进行一次
+{
+    if(!if_run) return;
+    //static bool flag=true;//控制input只进行一次
     node *p;
     string err;
     if(run_line==-1){
@@ -553,7 +564,11 @@ void MainWindow::run()
                err="Error: Unknown state "+state_type;
                throw myException(err);
            }
-               p->set_status();          
+           if(run_line==220){
+               int wdnmd=99999;
+           }
+
+               p->set_status();
            if (state_type == "REM") {     
                p = p->next;
                continue;
@@ -595,10 +610,15 @@ void MainWindow::run()
                continue;
            }
            if(state_type=="PRINTF"){
+               if(printf_once){
                p->state->execute(run_state);
+               printf_once=false;
+               }
                interaction=((PRINTF_statement*)p->state)->get_final_string();
                show_runcode(interaction);
                p=p->next;
+               printf_once=true;
+
                continue;
            }
            if (state_type == "GOTO") {
@@ -615,36 +635,36 @@ void MainWindow::run()
                continue;
            }
            if (state_type == "INPUT") {
-               if(valinput==""){               //未得到输入，退出该函数
-                   if(!flag) return;
+               //if(valinput==""){               //未得到输入，退出该函数
+               if(!wait_for_input){
                    if(p->expr->getType()!=IDENTIFIER){
                        err="Error: Input should be followed by a variable";
                        throw myException(err);
                    }
                    interaction= ((INPUT_statement*)p->state)->getname()+"?";
                    show_runcode(interaction);
-                   flag=false;
+                   wait_for_input=true;
                    return;
                }
                ((INPUT_statement*)p->state)->get_value(valinput);
                //execute把变量和值加入到run_state中
                ((INPUT_statement*)p->state)->execute(run_state);
                valinput="";
-               flag=true;
+               wait_for_input=false;
                p = p->next;
                continue;
            }
            if(state_type=="INPUTS"){
-               if(valinput==""){
+               if(!wait_for_inputs){
                    //未得到输入，退出该函数
-                   if(!flag) return;    //flag防止跑两次
+                   //if(!flag) return;    //flag防止跑两次
                    if(p->expr->getType()!=IDENTIFIER){
                        err="Error: Input should be followed by a variable";
                        throw myException(err);
                    }
                    interaction=((INPUTS_statement *)p->state)->getname()+"?";
                    show_runcode(interaction);
-                   flag=false;
+                   wait_for_inputs=true;
                    return;
                }
                //把得到的输入加入到run_state中
@@ -652,7 +672,7 @@ void MainWindow::run()
                ((INPUTS_statement*)p->state)->execute(run_state);
                //重置，为下一次INPUTS做准备
                valinput="";
-               flag=true;
+               wait_for_inputs=false;
                p=p->next;
                continue;
            }
@@ -738,6 +758,7 @@ void MainWindow::syntax_all(){
 
 //由一个node*打印语法树
 void MainWindow::syntaxtree(node *p){
+    if(p->content.empty()) return;
     string state_type=p->content[0];
     if(state_type!="REM"&&state_type!="LET"&&state_type!="IF"&&state_type!="PRINT"&&state_type!="END"&&state_type!="INPUT"
             &&state_type!="GOTO"&&state_type!="INPUTS"&&state_type!="PRINTF"){
@@ -746,7 +767,6 @@ void MainWindow::syntaxtree(node *p){
     }
     if(state_type=="REM"){
         //语法树
-        p->initial_exp();
         ui->Statement_Display->insertPlainText(QString::number(p->line_number));
         ui->Statement_Display->insertPlainText(QString::fromStdString(" "+state_type+" "));
         ui->Statement_Display->append("");
@@ -946,6 +966,8 @@ void MainWindow::clear()
     if_throw=false;
     debug_button_flag=false;
     this->print_tree_once=true;
+    this->wait_for_input=false;
+    this->wait_for_inputs=false;
     interaction="";
     valinput="";
     run_line=-1;

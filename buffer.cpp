@@ -224,7 +224,8 @@ void node::initial_state(){
     string state_type = content[0];
     string err;
     if (state_type == "REM") {
-        state = new REM_statement();
+        if(state==nullptr){
+        state = new REM_statement();}
         return;
     }
     if (state_type == "LET") {
@@ -232,30 +233,35 @@ void node::initial_state(){
         if(expr==nullptr){
         this->initial_exp();
         }
-        state = new LET_statement(this->expr);
+        if(state==nullptr){
+        state = new LET_statement(this->expr);}
         return;
     }
     if (state_type == "IF") {
         this->initial_exp();
-        state = new IF_statement(this->expr);
+        if(state==nullptr){
+        state = new IF_statement(this->expr);}
         return;
     }
     if (state_type == "PRINT") {
         if(expr==nullptr){
         this->initial_exp();
         }
-        state = new PRINT_statement(this->expr);
+        if(state==nullptr){
+        state = new PRINT_statement(this->expr);}
         return;
    }
     if (state_type == "GOTO"){
         if(expr==nullptr){
         this->initial_exp();
         }
-        state = new GOTO_statement(this->expr);
+        if(state==nullptr){
+        state = new GOTO_statement(this->expr);}
         return;
     }
     if (state_type == "END") {
-        state = new END_statement();
+        if(state==nullptr){
+        state = new END_statement();}
         return;
     }
     if (state_type == "INPUT") {
@@ -284,7 +290,8 @@ void node::initial_state(){
     }
     if(state_type=="PRINTF"){
         //只有printf不需要初始化exp
-        this->state=new PRINTF_statement(this->printf_prework());
+        if(state==nullptr){
+        this->state=new PRINTF_statement(this->printf_prework());}
         return;
     }
     //错误处理
@@ -583,6 +590,18 @@ void node::handle_negative()
         mark.pop();
         //vec.erase(vec.begin()+2);
         content.insert(content.begin()+num,"0");
+    }
+    stack<int> mark2;
+    //会出现两个0连着的情况，把其中一个0去掉
+    for(int j=0;j+1<this->content.size();j++){
+        if(this->content[j]=="0"&&this->content[j+1]=="0"){
+            mark2.push(j);
+        }
+    }
+    while(!mark2.empty()){
+        int num=mark2.top();
+        mark2.pop();
+        content.erase(content.begin()+num);
     }
 }
 

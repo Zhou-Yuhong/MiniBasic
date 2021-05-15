@@ -62,7 +62,10 @@ public:
     void Ins_handle(string input);
     void clear();
     node * ins_node=nullptr;   //用于处理INPUT，LET，PRINT，INPUTS,PRINTF指令的node*
+    bool wait_for_input=false;
+    bool wait_for_inputs=false;
     bool node_input_flag=false;  //上述node是否处于input等待输入的状态
+    bool printf_once=true; //printf只执行一次
     vector<int> error_line; //存储所有有错的行的编号进行高亮
     int Green_Line=-1;//记录要高亮为绿色的地方
     int transfer_linenum(int linenum);//把linenum转换成处于Code_Display的第几行(从0开始),不存在则返回-1
@@ -71,6 +74,7 @@ private:
     QDialog* dialog;//帮助的dialog
     QDialog* normal_dialog; //正常退出的弹框
     QDialog* wrong_dialog;   //错误退出的弹框
+    //int run_num=0; //正在跑的个数
     QTextBrowser* helpinf;
     QTextBrowser* normalinf;
     QTextBrowser* wronginf;
