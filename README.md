@@ -1,2 +1,2 @@
 # MiniBasic
-you can see the codes in the other branch
+使用QT开发的MiniBasic，代码在master分支
